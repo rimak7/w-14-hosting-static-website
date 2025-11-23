@@ -25,13 +25,12 @@ jobs:
       - name: Configure AWS credentials from AWS account
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE }}[
+          role-to-assume: ${{ secrets.AWS_ROLE }}
           aws-region: ${{ secrets.AWS_REGION }}
           role-session-name: github-action-access 
       
 
-      - uses: actions/checkout@master
-      - uses: jakejarvis/s3-sync-action@master
+      - uses: actions/checkout@main
         with:
           args: --follow-symlinks --exclude '.git/*' --exclude '.github/*' 
         env:
