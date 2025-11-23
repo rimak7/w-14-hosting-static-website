@@ -13,26 +13,33 @@ jobs:
 
     steps:
       - name: Git checkout
-        uses: actions/checkout@v3
+        # Use stable v4
+        uses: actions/checkout@v4 
+
       - name: install aws cli
-            
         uses: unfor19/install-aws-cli-action@v1
         with:
-          version: 2                         
-          verbose: false                   
-          arch: amd64                        
-  
+          version: 2
+          verbose: false
+          arch: amd64
+
       - name: Configure AWS credentials from AWS account
-        uses: aws-actions/configure-aws-credentials@v1
+        # Use stable v4
+        uses: aws-actions/configure-aws-credentials@v4 
         with:
+          # This line MUST contain only the variable for the full IAM Role ARN, 
+          # without any extra characters (like the trailing '[' or similar characters).
           role-to-assume: ${{ secrets.AWS_ROLE }}
           aws-region: ${{ secrets.AWS_REGION }}
-          role-session-name: github-action-access 
+          role-session-name: github-action-access
+          
+      # The next step uses the current working directory to sync with S3.
       
-
-      - uses: actions/checkout@main
+      - name: Deploy static files to S3
+        # Use a specific, stable version tag
+        uses: jakejarvis/s3-sync-action@v1.1.0 
         with:
-          args: --follow-symlinks --exclude '.git/*' --exclude '.github/*' 
+          args: --follow-symlinks --exclude '.git/*' --exclude '.github/*'
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
@@ -42,4 +49,3 @@ jobs:
         env:
           DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
           PATHS: "/index.html"
-  
