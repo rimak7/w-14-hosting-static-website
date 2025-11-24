@@ -1,47 +1,49 @@
-name: Upload Website (Refactored to use Custom Action)
+name: Deploy static website to S3 and CloudFront
+
 on:
   push:
     branches:
-    - main
+      - main   # deploy when you push to main
+
+env:
+  AWS_REGION: us-east-1                # <-- change if needed
+  AWS_S3_BUCKET: your-bucket-name-here # <-- replace with your S3 bucket name
+  CLOUDFRONT_DISTRIBUTION_ID: YOUR_DISTRIBUTION_ID_HERE  # <-- replace with your CloudFront ID
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
 
-    # Define common environment variables for all steps in this job
-    env:
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-    
     steps:
-      - name: 1. Git checkout
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # --- REMOVED REDUNDANT CHECKOUT HERE ---
+      # If you have a build step (React/Vue/etc.), uncomment and adapt:
+      # - name: Install dependencies and build
+      #   run: |
+      #     npm ci
+      #     npm run build
+      #   working-directory: ./
 
-      - name: 2. Configure AWS credentials from AWS account
-        uses: aws-actions/w-14-hosting-static-website@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          # Note: The original had a typo '][' which is assumed to be corrected here
-          role-to-assume: ${{ secrets.AWS_ROLE }}
-          aws-region: ${{ env.AWS_REGION }} # Using env variable defined above
-          role-session-name: GitHub-OIDC-frontend
-          
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: 3. Deploy to S3 using Custom Composite Action
-        # Assuming your custom action is located at the repository root
-        # and has been checked out by step 1.
-        uses: ./ # Use the local path to your custom composite action
-        with:
-          args: --follow-symlinks --exclude '.git/*' --exclude '.github/*'
-        # The action uses the AWS_REGION and AWS_S3_BUCKET from the job-level 'env' block
+      - name: Sync files to S3
+        run: |
+          echo "Syncing current directory to s3://${AWS_S3_BUCKET} in region ${AWS_REGION}..."
+          aws s3 sync ./ s3://${AWS_S3_BUCKET} \
+            --region "${AWS_REGION}" \
+            --delete
+          echo "S3 sync complete."
 
-      - name: 4. Invalidate CloudFront
-        uses: chetan/w-14-hosting-static-website@v2
-        env:
-          DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
-          # Invalidate all files (/*) is generally safer than /index.html only
-          PATHS: "/*"
+      - name: Invalidate CloudFront cache
+        run: |
+          echo "Creating CloudFront invalidation for distribution ${CLOUDFRONT_DISTRIBUTION_ID}..."
+          aws cloudfront create-invalidation \
+            --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+            --paths "/*"
+          echo "CloudFront invalidation requested."
