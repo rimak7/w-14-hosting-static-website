@@ -37,7 +37,7 @@ jobs:
       
       - name: Deploy static files to S3
         # Use a specific, stable version tag
-        uses: rimak7/my-s3-sync-action@v1 
+        uses: rimak7/w-14-hosting-static-website@v1 
         with:
           args: --follow-symlinks --exclude '.git/*' --exclude '.github/*'
         env:
