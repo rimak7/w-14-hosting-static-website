@@ -39,11 +39,11 @@ jobs:
 
       - name: Upload files to S3
         run: |
-          aws s3 sync . "s3://${S3_BUCKET}/" --delete
+          aws s3 cp . "s3://${S3_BUCKET}/" --delete
 
       - name: Invalidate CloudFront cache
         uses: chetan/invalidate-cloudfront-action@v2
         env:
           DISTRIBUTION: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
           PATHS: "/*"
-          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_REGION: ${{ secret.AWS_REGION }}
