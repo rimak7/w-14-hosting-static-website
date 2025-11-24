@@ -1,50 +1,38 @@
 name: Deploy static files to s3 bucket
+
 on:
   push:
     branches:
-    - main
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  deploy:
+  deploy_to_s3:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+      id-token: write # Required for OIDC authentication
       contents: read
 
     steps:
-      - name: Git checkout
-        # Use stable v4
-        uses: actions/checkout@v4 
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: install aws cli
+      uses: install cli
+      uses: unfor19/install-aws-cli-action@v1
+      with:
+      version: 2                         # default
+      verbose: false                     # default
+      arch: amd64                        # allowed values: amd64, x86, x64, arm, arm64
 
-      - name: install aws cli
-        uses: unfor19/install-aws-cli-action@v1
-        with:
-          version: 2
-          verbose: false
-          arch: amd64
 
-      - name: Configure AWS credentials from AWS account
-        # Use stable v4
-        uses: aws-actions/configure-aws-credentials@v4 
-        with:
-          # This line MUST contain only the variable for the full IAM Role ARN, 
-          # without any extra characters (like the trailing '[' or similar characters).
-          role-to-assume: ${{ secrets.AWS_ROLE }}
-          aws-region: ${{ secrets.AWS_REGION }}
-          role-session-name: github-action-access
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-      # The next step uses the current working directory to sync with S3.
-      
-      - name: Deploy static files to S3
-        # Use a specific, stable version tag
-        uses: rimak7/my-s3-sync-action@v1 
-        with:
-          args: --follow-symlinks --exclude '.git/*' --exclude '.github/*'
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          AWS_S3_BUCKET: 
-      - name: Invalidate CloudFront
-        uses: rimak7/my-cloudfront-invalidate-action@v1
-        env:
-          DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
-          PATHS: "/*"
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: us-east-1 
+
+    - name: Upload files to s3
+      run: |
+        aws s3 cp ./your-file.txt s3://kanm.bucket.1/ --recursive
