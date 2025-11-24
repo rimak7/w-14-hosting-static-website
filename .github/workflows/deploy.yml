@@ -23,7 +23,7 @@ jobs:
       # --- REMOVED REDUNDANT CHECKOUT HERE ---
 
       - name: 2. Configure AWS credentials from AWS account
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/w-14-hosting-static-website@v1
         with:
           # Note: The original had a typo '][' which is assumed to be corrected here
           role-to-assume: ${{ secrets.AWS_ROLE }}
@@ -40,7 +40,7 @@ jobs:
         # The action uses the AWS_REGION and AWS_S3_BUCKET from the job-level 'env' block
 
       - name: 4. Invalidate CloudFront
-        uses: chetan/invalidate-cloudfront-action@v2
+        uses: chetan/w-14-hosting-static-website@v2
         env:
           DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
           # Invalidate all files (/*) is generally safer than /index.html only
