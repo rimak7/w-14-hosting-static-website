@@ -22,9 +22,9 @@ jobs:
       uses: install cli
       uses: unfor19/install-aws-cli-action@v1
       with:
-      version: 2                         # default
-      verbose: false                     # default
-      arch: amd64                        # allowed values: amd64, x86, x64, arm, arm64
+        version: 2                         # default
+        verbose: false                     # default
+        arch: amd64                        # allowed values: amd64, x86, x64, arm, arm64
 
 
     - name: Configure AWS credentials
@@ -39,7 +39,7 @@ jobs:
 
     - name: Invalidate CloudFront Cache
       uses: chetan/invalidate-cloudfront-action@v2
-      with:
+      env:
         distribution: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
-        paths: '/*' # Invalidate all paths, or specify specific paths like '/index.html'
+        paths: "/*" # Invalidate all paths, or specify specific paths like '/index.html'
 
