@@ -20,7 +20,7 @@ jobs:
  deploy_to_s3:
    runs-on: ubuntu-latest
 
-    steps:
+steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
