@@ -32,20 +32,19 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE }}
           aws-region: ${{ secrets.AWS_REGION }}
           role-session-name: github-action-access
-          
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
       # The next step uses the current working directory to sync with S3.
       
       - name: Deploy static files to S3
         # Use a specific, stable version tag
-        uses: jakejarvis/s3-sync-action@v1.1.0 
+        uses: rimak7/my-s3-sync-action@v1 
         with:
           args: --follow-symlinks --exclude '.git/*' --exclude '.github/*'
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-
+          AWS_S3_BUCKET: 
       - name: Invalidate CloudFront
-        uses: chetan/invalidate-cloudfront-action@v2
+        uses: rimak7/my-cloudfront-invalidate-action@v1
         env:
           DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
-          PATHS: "/index.html"
+          PATHS: "/*"
