@@ -1,4 +1,4 @@
-name: Deploy static files to s3 bucket
+name: Deploy static files to S3 bucket
 
 on:
   push:
@@ -8,31 +8,44 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write    # Required for OIDC authentication
+  contents: read
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}   # create this secret in your repo
+
 jobs:
-  deploy_to_s3:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write # Required for OIDC authentication
-      contents: read
+ deploy_to_s3:
+   runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    - name: install aws cli
-      uses: install cli
-      uses: unfor19/install-aws-cli-action@v1
-      with:
-      version: 2                         # default
-      verbose: false                     # default
-      arch: amd64                        # allowed values: amd64, x86, x64, arm, arm64
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      - name: Install AWS CLI
+        uses: unfor19/install-aws-cli-action@v1
+        with:
+          version: 2
+          verbose: false
+          arch: amd64
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-        aws-region: us-east-1 
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Upload files to s3
-      run: |
-        aws s3 cp ./your-file.txt s3://kanm.bucket.1/ --recursive
+      - name: Upload files to S3
+        run: |
+          # If you have a build folder, change "." to "build" or "dist"
+          aws s3 sync . "s3://${S3_BUCKET}/" --delete
+
+      - name: Invalidate CloudFront cache
+        uses: chetan/invalidate-cloudfront-action@v2
+        env:
+          DISTRIBUTION: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+          PATHS: "/*"
+          AWS_REGION: ${{ env.AWS_REGION }}
+        
