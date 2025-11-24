@@ -1,50 +1,29 @@
-name: Deploy static files to s3 bucket
+name: Deploy to S3
+
 on:
   push:
-    branches:
-    - main
+    branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
+
+    env:
+      AWS_REGION: us-east-1
+      AWS_S3_BUCKET: my-frontend-bucket-name
 
     steps:
-      - name: Git checkout
-        # Use stable v4
-        uses: actions/checkout@v4 
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: install aws cli
-        uses: unfor19/install-aws-cli-action@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          version: 2
-          verbose: false
-          arch: amd64
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Configure AWS credentials from AWS account
-        # Use stable v4
-        uses: aws-actions/configure-aws-credentials@v4 
+      - name: Sync to S3
+        uses: rimak7/s3-sync-deployment@v1   # <- adjust to your repo/tag
         with:
-          # This line MUST contain only the variable for the full IAM Role ARN, 
-          # without any extra characters (like the trailing '[' or similar characters).
-          role-to-assume: ${{ secrets.AWS_ROLE }}
-          aws-region: ${{ secrets.AWS_REGION }}
-          role-session-name: github-action-access
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-      # The next step uses the current working directory to sync with S3.
-      
-      - name: Deploy static files to S3
-        # Use a specific, stable version tag
-        uses: rimak7/w-14-hosting-static-website@v1 
-        with:
-          args: --follow-symlinks --exclude '.git/*' --exclude '.github/*'
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          AWS_S3_BUCKET: 
-      - name: Invalidate CloudFront
-        uses: rimak7/my-cloudfront-invalidate-action@v1
-        env:
-          DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
-          PATHS: "/*"
+          args: --acl public-read --delete
