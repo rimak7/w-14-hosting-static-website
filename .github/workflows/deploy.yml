@@ -29,7 +29,7 @@ jobs:
         with:
           version: 2
           verbose: false
-          arch: amd64
+          arch: x86
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
