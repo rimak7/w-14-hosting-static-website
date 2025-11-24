@@ -1,8 +1,8 @@
-name: Deploy static files to s3 bucket
+name: Upload Website (Refactored to use Custom Action)
 on:
   push:
     branches:
-      - main
+    - main
 
 jobs:
   deploy:
@@ -11,37 +11,37 @@ jobs:
       id-token: write
       contents: read
 
+    # Define common environment variables for all steps in this job
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+    
     steps:
-      - name: Git checkout
-        uses: actions/checkout@v4
+      - name: 1. Git checkout
+        uses: actions/checkout@v3
 
-      - name: install aws cli
-        uses: unfor19/install-aws-cli-action@v1
-        with:
-          version: 2
-          verbose: false
-          arch: amd64
+      # --- REMOVED REDUNDANT CHECKOUT HERE ---
 
-      - name: Configure AWS credentials from AWS account
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: 2. Configure AWS credentials from AWS account
+        uses: aws-actions/configure-aws-credentials@v1
         with:
+          # Note: The original had a typo '][' which is assumed to be corrected here
           role-to-assume: ${{ secrets.AWS_ROLE }}
-          aws-region: ${{ secrets.AWS_REGION }}
-          role-session-name: github-action-access
+          aws-region: ${{ env.AWS_REGION }} # Using env variable defined above
+          role-session-name: GitHub-OIDC-frontend
+          
 
-      - name: Deploy static files to S3
-        uses: aws-actions/s3-sync@v2
+      - name: 3. Deploy to S3 using Custom Composite Action
+        # Assuming your custom action is located at the repository root
+        # and has been checked out by step 1.
+        uses: ./ # Use the local path to your custom composite action
         with:
-          bucket: ${{ secrets.AWS_S3_BUCKET }}
-          source-dir: ./public
-          args: --follow-symlinks --exclude '.git/*' --exclude '.github/*' --delete
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+          args: --follow-symlinks --exclude '.git/*' --exclude '.github/*'
+        # The action uses the AWS_REGION and AWS_S3_BUCKET from the job-level 'env' block
 
-      - name: Invalidate CloudFront
-        uses: aws-actions/aws-cloudfront-invalidate@v1
-        with:
-          distribution-id: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
-          paths: '/*'
+      - name: 4. Invalidate CloudFront
+        uses: chetan/invalidate-cloudfront-action@v2
         env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+          DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
+          # Invalidate all files (/*) is generally safer than /index.html only
+          PATHS: "/*"
