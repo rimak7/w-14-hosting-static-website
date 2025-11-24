@@ -1,29 +1,47 @@
-name: Deploy to S3
-
+name: Deploy static files to s3 bucket
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
-    env:
-      AWS_REGION: us-east-1
-      AWS_S3_BUCKET: my-frontend-bucket-name
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
-      - name: Checkout
+      - name: Git checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: install aws cli
+        uses: unfor19/install-aws-cli-action@v1
+        with:
+          version: 2
+          verbose: false
+          arch: amd64
+
+      - name: Configure AWS credentials from AWS account
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-session-name: github-action-access
 
-      - name: Sync to S3
-        uses: rimak7/s3-sync-deployment@v1   # <- adjust to your repo/tag
+      - name: Deploy static files to S3
+        uses: aws-actions/s3-sync@v2
         with:
-          args: --acl public-read --delete
+          bucket: ${{ secrets.AWS_S3_BUCKET }}
+          source-dir: ./public
+          args: --follow-symlinks --exclude '.git/*' --exclude '.github/*' --delete
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
+      - name: Invalidate CloudFront
+        uses: aws-actions/aws-cloudfront-invalidate@v1
+        with:
+          distribution-id: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
+          paths: '/*'
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
