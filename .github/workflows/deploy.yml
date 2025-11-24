@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_REGION: us-east-1
   S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: us-east-1
 
       - name: Upload files to S3
         run: |
@@ -46,4 +46,4 @@ jobs:
         env:
           DISTRIBUTION: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
           PATHS: "/*"
-          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_REGION: us-east-1
