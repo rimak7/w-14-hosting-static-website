@@ -1,49 +1,38 @@
-name: Deploy static website to S3 and CloudFront
+name: Deploy static files to s3 bucket
 
 on:
   push:
     branches:
-      - main   # deploy when you push to main
-
-env:
-  AWS_REGION: us-east-1                # <-- change if needed
-  AWS_S3_BUCKET: your-bucket-name-here # <-- replace with your S3 bucket name
-  CLOUDFRONT_DISTRIBUTION_ID: YOUR_DISTRIBUTION_ID_HERE  # <-- replace with your CloudFront ID
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  deploy:
+  deploy_to_s3:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for OIDC authentication
+      contents: read
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: install aws cli
+      uses: install cli
+      uses: unfor19/install-aws-cli-action@v1
+      with:
+      version: 2                         # default
+      verbose: false                     # default
+      arch: amd64                        # allowed values: amd64, x86, x64, arm, arm64
 
-      # If you have a build step (React/Vue/etc.), uncomment and adapt:
-      # - name: Install dependencies and build
-      #   run: |
-      #     npm ci
-      #     npm run build
-      #   working-directory: ./
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: us-east-1 
 
-      - name: Sync files to S3
-        run: |
-          echo "Syncing current directory to s3://${AWS_S3_BUCKET} in region ${AWS_REGION}..."
-          aws s3 sync ./ s3://${AWS_S3_BUCKET} \
-            --region "${AWS_REGION}" \
-            --delete
-          echo "S3 sync complete."
-
-      - name: Invalidate CloudFront cache
-        run: |
-          echo "Creating CloudFront invalidation for distribution ${CLOUDFRONT_DISTRIBUTION_ID}..."
-          aws cloudfront create-invalidation \
-            --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
-            --paths "/*"
-          echo "CloudFront invalidation requested."
+    - name: Upload files to s3
+      run: |
+        aws s3 cp ./your-file.txt s3://kanm.bucket.1/ --recursive
