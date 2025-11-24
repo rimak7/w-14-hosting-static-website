@@ -35,4 +35,4 @@ jobs:
 
     - name: Upload files to s3
       run: |
-        aws s3 cp ./your-file.txt s3://kanm.bucket.1/ 
+        aws s3 cp ./your-file.txt s3://kanm.bucket.1/ --recursive
